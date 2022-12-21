@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "3bcece87de0d13cdb234130fc5df715ebec4eea3ff53f86a25985fc593e13cef"
+            "sha256": "a3c3f06813bb2779a7a3832bdc6b7e1e56931274409b116ac8ca70b920d423a0"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -87,7 +87,7 @@
                 "sha256:e4abbcec3d84587bf2f32669b0f1ff60ff42838581203603bc641da5e5bd0354",
                 "sha256:f4f14294976f7fe309147537b0bed618c193dccb446798f2db8a16977f064cb7"
             ],
-            "markers": "python_version >= '3.7'",
+            "index": "pypi",
             "version": "==1.80"
         },
         "biothings-client": {

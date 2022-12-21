@@ -3,6 +3,9 @@
 4.1 HELPER FUNCTIONS
 """
 
+import Levenshtein
+import pandas as pd
+
 
 def get_mutation_info(_row, _wildtype="VPVNPEPDATSVENVALKTGSGDSQSDPIKADLEVKGQSALPFDVDCWAILCKGAPNVLQ"
                                       "RVNEKTKNSNRDRSGANKGPFKDPQKWGIKALPPKNPSWSAQDFKSPEEYAFASSLQGGT"
