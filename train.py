@@ -1,13 +1,6 @@
-# print("\n... PIP INSTALLS STARTING ...\n")
-# # Pip installs for biology specific libraries
-# !pip install -q biopandas
-# !pip install -q biopython
-# print("\n... PIP INSTALLS COMPLETE ...\n")
-
-
-# print("\n... IMPORTS STARTING ...\n")
-# print("\n\tVERSION INFORMATION")
-
+"""
+3  IMPORTS
+"""
 import ast
 import gc
 import gzip
@@ -54,16 +47,23 @@ import sklearn
 import tensorflow as tf
 import tifffile as tif
 from Bio import SeqIO
-# Biology Specific Imports (You'll see why we need these later)
 from biopandas.pdb import PandasPdb
-# from kaggle_datasets import KaggleDatasets
 from matplotlib import animation, rc
 from matplotlib.colors import ListedColormap
 from matplotlib.patches import Rectangle
 from PIL import Image, ImageEnhance
 from tqdm.notebook import tqdm
 
+print("\n... IMPORTS STARTING ...\n")
+print("\n\tVERSION INFORMATION")
+# Biology Specific Imports (You'll see why we need these later)
+# from kaggle_datasets import KaggleDatasets
+
 print(f"\t\t– BioPython VERSION: {Bio.__version__}")
+
+# Built-In Imports (mostly don't worry about these)
+# Visualization Imports (overkill)
+
 print(f"\t\t– BioPandas VERSION: {biopandas.__version__}")
 pdb = PandasPdb()
 
@@ -74,9 +74,7 @@ pd.set_option('display.max_columns', None)
 print(f"\t\t– NUMPY VERSION: {np.__version__}")
 print(f"\t\t– SKLEARN VERSION: {sklearn.__version__}")
 
-# Built-In Imports (mostly don't worry about these)
 
-# Visualization Imports (overkill)
 tqdm.pandas()
 Image.MAX_IMAGE_PIXELS = 5_000_000_000
 print(f"\t\t– MATPLOTLIB VERSION: {matplotlib.__version__}")
@@ -98,23 +96,25 @@ seed_it_all()
 print("\n\n... IMPORTS COMPLETE ...\n")
 
 
-##
+"""
+4  SETUP AND HELPER FUNCTIONS
+4.2 LOAD DATA
+"""
 # Define the path to the root data directory
 DATA_DIR = "data"
-
 
 print("\n... BASIC DATA SETUP STARTING ...\n")
 print("\n\n... LOAD TRAIN DATAFRAME FROM CSV FILE ...\n")
 train_df = pd.read_csv(os.path.join(DATA_DIR, "train.csv"))
-display(train_df)
+print(train_df)
 
 print("\n\n... LOAD TEST DATAFRAME FROM CSV FILE ...\n")
 test_df = pd.read_csv(os.path.join(DATA_DIR, "test.csv"))
-display(test_df)
+print(test_df)
 
 print("\n\n... LOAD SAMPLE SUBMISSION DATAFRAME FROM CSV FILE ...\n")
 ss_df = pd.read_csv(os.path.join(DATA_DIR, "sample_submission.csv"))
-display(ss_df)
+print(ss_df)
 
 print("\n\n... LOAD ALPHAFOLD WILDTYPE STRUCTURE DATA FROM PDB FILE ...\n")
 pdb_df = pdb.read_pdb(
@@ -124,19 +124,19 @@ pdb_df = pdb.read_pdb(
 
 print("ATOM DATA...")
 atom_df = pdb_df.df['ATOM']
-display(atom_df)
+print(atom_df)
 
 print("\nHETATM DATA...")
 hetatm_df = pdb_df.df['HETATM']
-display(hetatm_df)
+print(hetatm_df)
 
 print("\nANISOU DATA...")
 anisou_df = pdb_df.df['ANISOU']
-display(anisou_df)
+print(anisou_df)
 
 print("\nOTHERS DATA...")
 others_df = pdb_df.df['OTHERS']
-display(others_df)
+print(others_df)
 
 print("\n\n... SAVING WILDTYPE AMINO ACID SEQUENCE...\n")
 wildtype_aa = "VPVNPEPDATSVENVALKTGSGDSQSDPIKADLEVKGQSALPFDVDCWAILCKGAPNVLQRVNEKTKNSNRDRSGANKGPFKDPQKWGIKALPPKNPSWSAQDFKSPEEYAFASSLQGGTNAILAPVNLASQNSQGGVLNGFYSANKVAQFDPSKPQQTKGTWFQITKFTGAAGPYCKALGSNDKSVCDKNKNIAGDWGFDPAKWAYQYDEKNNKFNYVGK"
