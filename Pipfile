@@ -18,7 +18,7 @@ matplotlib = "*"
 plotly = "*"
 seaborn = "*"
 tifffile = "*"
-biopython = "==1.75"
+py3dmol = "*"
 
 [dev-packages]
 

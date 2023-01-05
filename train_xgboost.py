@@ -6,7 +6,19 @@ XGBoost - 5000 Mutations 200 PDB Files
 # ADD WORDS "kaggle.csv", "jin_tm.csv", "jin_train.csv", "jin_test.csv" to lists below
 # IF YOU ADD MORE DATASETS, ADD THOSE WORDS TOO
 
-KFOLD_SOURCES = ['jin_tm.csv','jin_train.csv','jin_test.csv']
+import gc
+import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import py3Dmol
+import seaborn as sns
+from biopandas.mmcif import PandasMmcif
+from biopandas.pdb import PandasPdb
+from scipy.stats import pearsonr, rankdata, spearmanr
+
+KFOLD_SOURCES = ['jin_tm.csv', 'jin_train.csv', 'jin_test.csv']
 HOLDOUT_SOURCES = ['kaggle.csv']
 
 # IF WILD TYPE GROUP HAS FEWER THAN THIS MANY MUTATION ROWS REMOVE THEM
@@ -14,7 +26,8 @@ EXCLUDE_CT_UNDER = 25
 
 # IF WE TRAIN WITH ALPHA FOLD'S PDBS WE MUST INFER WITH "PLDDT = TRUE"
 # KAGGLE.CSV USES ALPHA FOLD PDB, SO SET BELOW TO TRUE WHEN TRAIN WITH KAGGLE.CSV
-# JIN.CSV EXTERNAL DATA USES PROTEIN DATA BANK, SO SET BELOW TO FALSE WITH JIN DATA
+# JIN.CSV EXTERNAL DATA USES PROTEIN DATA BANK, SO SET BELOW TO FALSE WITH
+# JIN DATA
 USE_PLDDT_INFER = False
 
 # IF WE WISH TO TRAIN WITH MIXTURE OF ALPHA FOLD AND PROTEIN DATA BANK PDB FILES
@@ -26,17 +39,10 @@ VER = 17
 """
 Download 3 External Mutation CSV
 """
-import gc
-import os
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-from scipy.stats import pearsonr, rankdata, spearmanr
 
 data_folder = 'data'
-download_data_folder = os.path.join(data_folder,"downloaded_csv")
+download_data_folder = os.path.join(data_folder, "downloaded_csv")
 
 pd.set_option('display.max_columns', 500)
 # os.system('wget https://raw.githubusercontent.com/JinyuanSun/mutation-stability-data/main/train.csv')
@@ -45,19 +51,19 @@ pd.set_option('display.max_columns', 500)
 # os.system(f'mkdir {download_data_folder}; mv *csv {download_data_folder}')
 
 
-df = pd.read_csv(os.path.join(download_data_folder,'train.csv'))
-df = df.iloc[:,1:]
-print('Downloaded train shape', df.shape )
+df = pd.read_csv(os.path.join(download_data_folder, 'train.csv'))
+df = df.iloc[:, 1:]
+print('Downloaded train shape', df.shape)
 df.head()
 
-df2 = pd.read_csv(os.path.join(download_data_folder,'test.csv'))
-df2 = df2.iloc[:,1:]
-print('Downloaded test shape', df2.shape )
+df2 = pd.read_csv(os.path.join(download_data_folder, 'test.csv'))
+df2 = df2.iloc[:, 1:]
+print('Downloaded test shape', df2.shape)
 df2.head()
 
-df3 = pd.read_csv(os.path.join(download_data_folder,'tm.csv'))
-df3 = df3.iloc[:,1:]
-print('Downloaded tm shape', df3.shape )
+df3 = pd.read_csv(os.path.join(download_data_folder, 'tm.csv'))
+df3 = df3.iloc[:, 1:]
+print('Downloaded tm shape', df3.shape)
 df3.head()
 
 
@@ -65,29 +71,34 @@ df3.head()
 Transform Kaggle Train Data into Mutation CSV
 """
 # https://www.kaggle.com/code/roberthatch/novo-train-data-contains-wildtype-groups/notebook
-kaggle = pd.read_csv(os.path.join(data_folder,'novo-train-data-contains-wildtype-groups/train_wildtype_groups.csv'))
-print('Before processing Robert dataframe shape:', kaggle.shape )
+kaggle = pd.read_csv(
+    os.path.join(
+        data_folder,
+        'novo-train-data-contains-wildtype-groups/train_wildtype_groups.csv'))
+print('Before processing Robert dataframe shape:', kaggle.shape)
 print(kaggle.head())
 
-kaggle['id'] = kaggle.data_source.astype('str') + '_' + kaggle.pH.astype('str') + '_' + kaggle.group.astype('str')
+kaggle['id'] = kaggle.data_source.astype(
+    'str') + '_' + kaggle.pH.astype('str') + '_' + kaggle.group.astype('str')
 kaggle['ct'] = kaggle.groupby('id').id.transform('count')
 kaggle['n'] = kaggle.groupby('id').tm.transform('nunique')
-kaggle = kaggle.loc[kaggle.n>1]
-kaggle = kaggle.sort_values(['group','ct'],ascending=[True,False])
+kaggle = kaggle.loc[kaggle.n > 1]
+kaggle = kaggle.sort_values(['group', 'ct'], ascending=[True, False])
 KEEP = kaggle.groupby('group').id.agg('first').values
 kaggle = kaggle.loc[kaggle.id.isin(KEEP)]
+
 
 def find_mut(row):
     mut = row.protein_sequence
     seq = row.wildtype
     same = True
-    for i,(x,y) in enumerate(zip(seq,mut)):
-        if x!=y:
+    for i, (x, y) in enumerate(zip(seq, mut)):
+        if x != y:
             same = False
             break
     if not same:
         row['WT'] = seq[i]
-        row['position'] = i+1
+        row['position'] = i + 1
         row['MUT'] = mut[i]
     else:
         row['WT'] = 'X'
@@ -95,29 +106,36 @@ def find_mut(row):
         row['MUT'] = 'X'
     return row
 
+
 grp = [f'GP{g:02d}' for g in kaggle.group.values]
 kaggle['PDB'] = grp
-kaggle = kaggle.apply(find_mut,axis=1)
-kaggle = kaggle.loc[kaggle.position!=-1]
+kaggle = kaggle.apply(find_mut, axis=1)
+kaggle = kaggle.loc[kaggle.position != -1]
 kaggle['base'] = kaggle.groupby('group').tm.transform('mean')
 kaggle['dTm'] = kaggle.tm - kaggle.base
-kaggle = kaggle.rename({'wildtype':'sequence','protein_sequence':'mutant_seq'},axis=1)
-COLS = ['PDB','WT','position','MUT','dTm','sequence','mutant_seq']
+kaggle = kaggle.rename(
+    {'wildtype': 'sequence', 'protein_sequence': 'mutant_seq'}, axis=1)
+COLS = ['PDB', 'WT', 'position', 'MUT', 'dTm', 'sequence', 'mutant_seq']
 kaggle = kaggle[COLS]
 
 # https://www.kaggle.com/datasets/shlomoron/train-wildtypes-af
-alphafold = pd.read_csv(os.path.join(data_folder,'train-wildtypes-af/alpha_fold_df.csv'))
+alphafold = pd.read_csv(
+    os.path.join(
+        data_folder,
+        'train-wildtypes-af/alpha_fold_df.csv'))
 dd = {}
 for s in kaggle.sequence.unique():
-    tmp = alphafold.loc[alphafold.af2_sequence==s,'af2id']
-    if len(tmp)>0: c = tmp.values[0].split(':')[1]
-    else: c = np.nan
+    tmp = alphafold.loc[alphafold.af2_sequence == s, 'af2id']
+    if len(tmp) > 0:
+        c = tmp.values[0].split(':')[1]
+    else:
+        c = np.nan
     dd[s] = c
 
 kaggle['CIF'] = kaggle.sequence.map(dd)
 kaggle = kaggle.loc[kaggle.CIF.notnull()].reset_index(drop=True)
-kaggle.to_csv('kaggle_train.csv',index=False)
-print('After processing Robert dataframe shape:', kaggle.shape )
+kaggle.to_csv('kaggle_train.csv', index=False)
+print('After processing Robert dataframe shape:', kaggle.shape)
 print(kaggle.head())
 
 """
@@ -134,37 +152,97 @@ df3 = df3.loc[~df3.PDB.isin(['1RX4', '2LZM', '3MBP'])].copy()
 df3['source'] = 'jin_tm.csv'
 df3['ddG'] = np.nan
 df3['CIF'] = None
-df3 = df3.rename({'WT':'wildtype','MUT':'mutation'},axis=1)
+df3 = df3.rename({'WT': 'wildtype', 'MUT': 'mutation'}, axis=1)
 df3 = df3[df.columns]
 
 kaggle['source'] = 'kaggle.csv'
 kaggle['ddG'] = np.nan
-kaggle = kaggle.rename({'WT':'wildtype','MUT':'mutation'},axis=1)
+kaggle = kaggle.rename({'WT': 'wildtype', 'MUT': 'mutation'}, axis=1)
 kaggle = kaggle[df.columns]
 
-df = pd.concat([df,df2,df3,kaggle],axis=0,ignore_index=True)
+df = pd.concat([df, df2, df3, kaggle], axis=0, ignore_index=True)
 del df2, df3, kaggle
-print('Combined data shape',df.shape)
-df.to_csv(f'all_train_data_v{VER}.csv',index=False)
-df = df.loc[df.source.isin(KFOLD_SOURCES+HOLDOUT_SOURCES)]
-print('Kfold plus Holdout shape',df.shape)
-df = df.sort_values(['PDB','position']).reset_index(drop=True)
+print('Combined data shape', df.shape)
+df.to_csv(f'all_train_data_v{VER}.csv', index=False)
+df = df.loc[df.source.isin(KFOLD_SOURCES + HOLDOUT_SOURCES)]
+print('Kfold plus Holdout shape', df.shape)
+df = df.sort_values(['PDB', 'position']).reset_index(drop=True)
 print(df.head())
 
 
 """
 Download 200 PDB Files
 """
-print('There are',df.PDB.nunique(),'PDB files to download')
 
-# THE FOLLOWING PROTEINS SEQUENCES CANNOT BE ALIGNED BETWEEN CSV AND PDB FILE (not sure why)
-bad = [f for f in df.PDB.unique() if len(f)>4]
-bad += ['1LVE', '2IMM', '2RPN', '1BKS', '1BLC', '1D5G', '1KDX', '1OTR', '3BN0', '3D3B', '3HHR', '3O39']
-bad += ['3BDC','1AMQ','1X0J','1TPK','1GLM','1RHG','3DVI','1RN1','1QGV']
-bad += ['1SVX','4E5K']
+print('There are', df.PDB.nunique(), 'PDB files to download')
+
+# THE FOLLOWING PROTEINS SEQUENCES CANNOT BE ALIGNED BETWEEN CSV AND PDB
+# FILE (not sure why)
+bad = [f for f in df.PDB.unique() if len(f) > 4]
+bad += ['1LVE', '2IMM', '2RPN', '1BKS', '1BLC', '1D5G',
+        '1KDX', '1OTR', '3BN0', '3D3B', '3HHR', '3O39']
+bad += ['3BDC', '1AMQ', '1X0J', '1TPK', '1GLM', '1RHG', '3DVI', '1RN1', '1QGV']
+bad += ['1SVX', '4E5K']
 print(f'We will ignore mutations from {len(bad)} PDB files')
 
 # os.system(f'mkdir {os.path.join(data_folder,"downloaded_pdb")}')
 # for p in [f for f in df.PDB.unique() if f not in bad]:
 #     if p[:2]=='GP': continue # skip kaggle CIF
 #     os.system(f'cd downloaded_pdb; wget https://files.rcsb.org/download/{p}.pdb')
+
+
+"""
+Feature Engineer
+"""
+
+"""
+Feature Engineer
+Protein Structure Features
+"""
+
+
+with open(os.path.join(data_folder, "wildtype_structure_prediction_af2.pdb")) as ifile:
+    protein = "".join([x for x in ifile])
+#view = py3Dmol.view(query='pdb:1DIV', width=800, height=600)
+view = py3Dmol.view(width=800, height=600)
+view.addModelsAsFrames(protein)
+style = {'cartoon': {'color': 'spectrum'}, 'stick': {}}
+view.setStyle({'model': -1}, style)
+view.zoom(0.12)
+view.rotate(235, {'x': 0, 'y': 1, 'z': 1})
+view.spin({'x': -0.2, 'y': 0.5, 'z': 1}, 1)
+view.show()
+
+"""
+Feature Engineer
+Amino Acid Features
+"""
+# BIOPANDAS PDB READER
+# !pip install biopandas - q
+
+aa_map = {'VAL': 'V', 'PRO': 'P', 'ASN': 'N', 'GLU': 'E', 'ASP': 'D', 'ALA': 'A', 'THR': 'T', 'SER': 'S',
+          'LEU': 'L', 'LYS': 'K', 'GLY': 'G', 'GLN': 'Q', 'ILE': 'I', 'PHE': 'F', 'CYS': 'C', 'TRP': 'W',
+          'ARG': 'R', 'TYR': 'Y', 'HIS': 'H', 'MET': 'M'}
+aa_map_2 = {
+    x: y for x,
+    y in zip(
+        np.sort(
+            list(
+                aa_map.values())),
+        np.arange(20))}
+aa_map_2['X'] = 20
+
+# https://www.kaggle.com/datasets/alejopaullier/aminoacids-physical-and-chemical-properties
+aa_props = pd.read_csv(
+    os.path.join(
+        data_folder,
+        'aminoacids.csv')).set_index('Letter')
+PROPS = ['Molecular Weight', 'Residue Weight', 'pKa1', 'pKb2', 'pKx3', 'pl4',
+         'H', 'VSC', 'P1', 'P2', 'SASA', 'NCISC']
+print('Amino Acid properties dataframe. Shape:', aa_props.shape)
+print(aa_props.head(22))
+
+"""
+Substitution Matrix Features
+"""
+
