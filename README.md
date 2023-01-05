@@ -2,6 +2,7 @@
 
 [kaggle page](https://www.kaggle.com/competitions/novozymes-enzyme-stability-prediction/code?competitionId=37190&sortBy=voteCount)
 
+[pLLDT and DDG](https://www.kaggle.com/code/kvigly55/plldt-and-ddg/notebook)
 [referenced code](https://www.kaggle.com/code/dschettler8845/novo-esp-eli5-performant-approaches-lb-0-451)
 
 ## 執行環境
@@ -92,3 +93,7 @@
 - SECONDARY DEFINITION
 
 #### SUBMISSION FILE INFORMATION
+
+## Reference
+
+[BioPandas](http://rasbt.github.io/biopandas/)

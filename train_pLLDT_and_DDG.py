@@ -73,10 +73,10 @@ def read_list_from_file(list_file):
 test_df = pd.read_csv(paths.TEST)
 test_df = test_df.apply(get_mutation_info, axis=1)
 test_df.loc[test_df.edit_type.isna(), 'edit_type'] = 'nothing'
-test_df.head()
+print(test_df.head())
 
 pdb_df = PandasPdb().read_pdb(paths.PDB_FILE)
-pdb_df.df.keys()
+print(pdb_df.df.keys())
 
 atom_df = pdb_df.df['ATOM']
 atom_df['residue_number_0based'] = atom_df['residue_number'] - 1
@@ -86,7 +86,7 @@ test_df.loc[test_df['edit_type'] == 'deletion', 'new_aa'] = '-'
 test_df.loc[test_df['edit_type'] == 'insertion', 'new_aa'] = '+'
 test_df.loc[:, 'mut_string'] = test_df.old_aa + \
     test_df.edit_idx.astype(str) + test_df.new_aa
-test_df.head()
+print(test_df.head())
 
 ddg = read_list_from_file(
     'data/own/wildtype_structure_prediction_af2.deepddg.ddg.txt')

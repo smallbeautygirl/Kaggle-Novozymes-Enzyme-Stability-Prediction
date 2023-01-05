@@ -1,7 +1,6 @@
 """
 3  IMPORTS
 """
-from scipy import stats
 import ast
 import gc
 import gzip
@@ -54,6 +53,7 @@ from matplotlib import animation, rc
 from matplotlib.colors import ListedColormap
 from matplotlib.patches import Rectangle
 from PIL import Image, ImageEnhance
+from scipy import stats
 from tqdm.notebook import tqdm
 
 from data_utils import get_mutation_info
@@ -103,7 +103,7 @@ print("\n\n... IMPORTS COMPLETE ...\n")
 
 """
 4  SETUP AND HELPER FUNCTIONS
-4.2 LOAD DATA
+4.2 LOAD DATA - Much of this may not be needed.
 """
 # Define the path to the root data directory
 DATA_DIR = "data"
@@ -385,6 +385,24 @@ print(test_df)
 5.6 ADJUST THE MATRIX SUBSTITUTION AND B_FACTOR VALUES
 """
 sub_scores = []
+sub_mat = MatrixInfo.blosum100
+for i in range(len(test_df)):
+    mut_type = test_df.edit_type.values[i]
+    if mut_type == 'substitution':
+        try:
+            sub_score = sub_mat[(test_df.old_aa.values[i],
+                                 test_df.new_aa.values[i])]
+        except KeyError:
+            sub_score = sub_mat[(test_df.new_aa.values[i],
+                                 test_df.old_aa.values[i])]
+    elif mut_type == 'nothing':
+        sub_score = 0
+    else:
+        sub_score = -10
+    sub_scores.append(sub_score)
+
+test_df['sub_score'] = sub_scores
+
 test_df.loc[test_df['sub_score'] > 0, 'sub_score'] = 0
 test_df['score_adj'] = [
     1 - (1 / (1 + np.exp(-x / sigmoid_norm_factor))) for x in sub_scores
